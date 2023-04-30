@@ -1,0 +1,19 @@
+{
+	"name": "ld53",
+	"scripts": {
+		"build": "esbuild --bundle src/main.js --outfile=www/main.js --minify",
+		"dev": "esbuild --bundle src/main.js --outfile=www/main.js --servedir=www",
+		"zip": "npm run build && mkdir -p dist && zip -r dist/game.zip www -x \"**/.DS_Store\"",
+		"run:desktop": "npm run build && neu run",
+		"build:desktop": "npm run build && neu build --release"
+	},
+	"dependencies": {
+		"cheerio": "^1.0.0-rc.12",
+		"kaboom": "^3000.0.0-beta.3",
+		"svg-path-to-polygons": "^0.1.0"
+	},
+	"devDependencies": {
+		"@neutralinojs/neu": "^9.5.1",
+		"esbuild": "^0.17.18"
+	}
+}

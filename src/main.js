@@ -37,13 +37,36 @@ loadSprite("follower", "sprites/follower.png", {
 })
 loadSprite("background", "sprites/background.png")
 loadSprite("foreground", "sprites/foreground.png")
-loadSprite("bed0", "sprites/bed0-0.png")
-loadSprite("bed1", "sprites/bed1-0.png")
-loadSprite("bed2", "sprites/bed2-0.png")
+loadSprite("bed-0-0", "sprites/bed-0-0.png")
+loadSprite("bed-0-1", "sprites/bed-0-1.png")
+loadSprite("bed-0-2", "sprites/bed-0-2.png")
+loadSprite("bed-1-0", "sprites/bed-1-0.png")
+loadSprite("bed-1-1", "sprites/bed-1-1.png")
+loadSprite("bed-1-2", "sprites/bed-1-2.png")
+loadSprite("bed-2-0", "sprites/bed-2-0.png")
+loadSprite("bed-2-1", "sprites/bed-2-1.png")
+loadSprite("bed-2-2", "sprites/bed-2-2.png")
+loadSprite("checkmark", "sprites/checkmark.png")
+loadSprite("ui-operate", "sprites/ui-operate.png")
+loadSprite("ui-scalpel", "sprites/ui-scalpel.png")
+loadSprite("ui-forceps", "sprites/ui-forceps.png")
+loadSprite("ui-stapler", "sprites/ui-stapler.png")
+loadSprite("scalpel", "sprites/scalpel.png")
+loadSprite("forceps", "sprites/forceps.png")
+loadSprite("stapler", "sprites/stapler.png")
+loadSprite("ice", "sprites/ice.png")
 loadSprite("captcha", "sprites/captcha.png")
 loadSprite("chest-back", "sprites/chest-back.png")
 loadSprite("chest-closed", "sprites/chest-closed.png")
-loadSprite("chest-open", "sprites/chest-open.png")
+loadSprite("chest-open-0-0", "sprites/chest-open-0-0.png")
+loadSprite("chest-open-0-1", "sprites/chest-open-0-1.png")
+loadSprite("chest-open-0-2", "sprites/chest-open-0-2.png")
+loadSprite("chest-open-1-0", "sprites/chest-open-1-0.png")
+loadSprite("chest-open-1-1", "sprites/chest-open-1-1.png")
+loadSprite("chest-open-1-2", "sprites/chest-open-1-2.png")
+loadSprite("chest-open-2-0", "sprites/chest-open-2-0.png")
+loadSprite("chest-open-2-1", "sprites/chest-open-2-1.png")
+loadSprite("chest-open-2-2", "sprites/chest-open-2-2.png")
 loadSprite("liver", "sprites/liver.png")
 loadSprite("organ-0", "sprites/organ-0.png")
 loadSprite("organ-1", "sprites/organ-1.png")
@@ -62,6 +85,19 @@ loadSprite("organ-13", "sprites/organ-13.png")
 loadSprite("organ-14", "sprites/organ-14.png")
 loadSprite("ribcage", "sprites/ribcage.png")
 loadSprite("exit", "sprites/exit.png")
+
+loadSound("crt", "audio/crt.ogg")
+loadSound("scalpel", "audio/scalpel.ogg")
+loadSound("forceps", "audio/forceps.ogg")
+loadSound("stapler", "audio/stapler.ogg")
+loadSound("cut", "audio/cut.ogg")
+loadSound("yoink-0", "audio/yoink-0.ogg")
+loadSound("yoink-1", "audio/yoink-1.ogg")
+loadSound("yoink-2", "audio/yoink-2.ogg")
+loadSound("drop", "audio/drop.ogg")
+loadSound("confirmation", "audio/confirmation.ogg")
+loadSound("staple", "audio/staple.ogg")
+
 loadShaderURL("crt", null, "shaders/crt.frag")
 
 const collisions = {
@@ -370,6 +406,8 @@ const collisions = {
 scene("shelter", ({ beds, curBed }) => {
 	usePostEffect()
 
+	onUpdate(() => setCursor("default"))
+
 	add([
 		"parallax",
 		sprite("background"),
@@ -404,11 +442,38 @@ scene("shelter", ({ beds, curBed }) => {
 	const player = add([
 		sprite("player"),
 		pos(width() / 3, height() / 8 * 7),
+		area(),
 		anchor("bot"),
 		z(1),
 		{ speed: 400 }
 	])
 	player.play("idle")
+
+	const uiOperate = add([
+		sprite("ui-operate"),
+		scale(0.4),
+		pos(width(), height()),
+		area(),
+		anchor("top"),
+		"uiOperate",
+		{ bed: 0 }
+	])
+
+	player.onCollideUpdate("bed", (bed) => {
+		if (!bed.done) {
+			uiOperate.pos = [bed.pos.x, bed.pos.y - 528]
+
+			const bedIdx = beds.children.findIndex(obj => obj.id === bed.id)
+			uiOperate.bed = bedIdx
+
+			if (isKeyDown("space")) {
+				go("surgery", { beds: beds, curBed: bedIdx })
+			}
+		}
+	})
+	player.onCollideEnd("bed", () => {
+		uiOperate.pos = [width(), height()]
+	})
 
 	const follower = add([
 		sprite("follower"),
@@ -422,12 +487,16 @@ scene("shelter", ({ beds, curBed }) => {
 	follower.onUpdate(() => {
 		const distance = player.pos.sub(follower.pos)
 		const dir = distance.unit()
-		console.log(follower.pos.x)
 		follower.flipX = dir.x < 0
 		if (Math.abs(distance.x) > 230) {
 			follower.move(dir.scale(follower.speed))
 		}
 	})
+
+	if (curBed !== null) {
+		player.pos.x = beds.children[curBed].pos.x
+		follower.pos.x = beds.children[curBed].pos.x - 150
+	}
 
 	function animWalk() {
 		if (player.curAnim() !== "walk") {
@@ -439,46 +508,46 @@ scene("shelter", ({ beds, curBed }) => {
 		}
 	}
 
-	onKeyDown("left", () => {
-		player.flipX = true
-		if (player.pos.x > width() / 4) {
-			player.move(-player.speed, 0)
-		} else {
-			get("parallax").forEach((child) => {
-				child.move(child.speed, 0)
-				if (child.pos.x >= width()) {
-					child.pos.x -= width() * 2
-				}
-			})
-			beds.children.forEach((child) => {
-				child.move(child.speed, 0)
-			})
-		}
-		if (follower.pos.x < width() / 4) {
-			follower.pos.x = width() / 4 + 230
-		}
-		animWalk()
-	})
-
-	onKeyDown("right", () => {
-		player.flipX = false
-		if (player.pos.x < width() / 4 * 3) {
-			player.move(player.speed, 0)
-		} else {
-			get("parallax").forEach((child) => {
-				child.move(-child.speed, 0)
-				if (child.pos.x <= -width()) {
-					child.pos.x += width() * 2
-				}
-			})
-			beds.children.forEach((child) => {
-				child.move(-child.speed, 0)
-			})
-		}
-		animWalk()
-	})
-
 	;["left", "right"].forEach((key) => {
+		onKeyDown("left", () => {
+			player.flipX = true
+			if (player.pos.x > width() / 4) {
+				player.move(-player.speed, 0)
+			} else {
+				get("parallax").forEach((child) => {
+					child.move(child.speed, 0)
+					if (child.pos.x >= width()) {
+						child.pos.x -= width() * 2
+					}
+				})
+				beds.children.forEach((child) => {
+					child.move(child.speed, 0)
+				})
+			}
+			if (follower.pos.x < width() / 4) {
+				follower.pos.x = width() / 4 + 230
+			}
+			animWalk()
+		})
+
+		onKeyDown("right", () => {
+			player.flipX = false
+			if (player.pos.x < width() / 4 * 3) {
+				player.move(player.speed, 0)
+			} else {
+				get("parallax").forEach((child) => {
+					child.move(-child.speed, 0)
+					if (child.pos.x <= -width()) {
+						child.pos.x += width() * 2
+					}
+				})
+				beds.children.forEach((child) => {
+					child.move(-child.speed, 0)
+				})
+			}
+			animWalk()
+		})
+
 		onKeyRelease(key, () => {
 			if (!isKeyDown("left") && !isKeyDown("right")) {
 				player.play("idle")
@@ -487,13 +556,248 @@ scene("shelter", ({ beds, curBed }) => {
 		})
 	})
 
-	onKeyPress("o", () => {
-		go("surgery", { beds: beds, curBed: 2 })
+	onKeyPress("`", () => {
+		debug.inspect = true
 	})
 })
 
 scene("surgery", ({ beds, curBed }) => {
 	usePostEffect("crt", { "u_flatness": 4 })
+	play("crt")
+
+	const difficulty = beds.children[curBed].difficulty
+	const variant = beds.children[curBed].variant
+
+	onUpdate(() => setCursor("default"))
+
+	add([
+		sprite("chest-back"),
+		pos(5, 116)
+	])
+
+	const liver = add([
+		sprite("liver"),
+		pos(randi(450, 850), randi(250, 650)),
+		area({ cursor: "pointer", shape: collisions["liver"], scale: 0.8 }),
+		anchor("center"),
+		drag(),
+		"organ"
+	])
+
+	for (let i = 0; i <= (difficulty == 0 ? 8 : difficulty == 1 ? 20 : 40); i++) {
+		const o = randi(15)
+		add([
+			sprite("organ-" + o),
+			pos(randi(450, 850), randi(250, 650)),
+			area({ cursor: "pointer", shape: collisions["organ-" + o], scale: 0.8 }),
+			anchor("center"),
+			drag(),
+			"organ"
+		])
+	}
+
+	const ribcage = add([
+		sprite("ribcage"),
+		pos(622, 422),
+		area({ cursor: "pointer", shape: collisions["ribcage"], scale: 0.8 }),
+		anchor("center"),
+		drag(),
+		"organ",
+        { removed: false }
+	])
+
+	get("organ").forEach((child) => {
+		child.onDrag(() => {
+			readd(child)
+		})
+		child.onDragUpdate(() => {
+			setCursor("move")
+		})
+	})
+
+	const chestOpen = add([
+		sprite("chest-open-" + difficulty + "-" + variant),
+		pos(5, 116),
+		area()
+	])
+
+	chestOpen.onClick(() => {
+		if (stapler.active && liver.isColliding(ice)) {
+			add([
+				sprite("chest-closed"),
+				pos(5, 116)
+			])
+			play("staple")
+			wait(1, () => {
+				const doneBed = beds.children[curBed]
+				doneBed.done = true
+				doneBed.add([
+					sprite("checkmark"),
+					pos(0, -490),
+					anchor("center")
+				])
+				go("shelter", { beds: beds, curBed: curBed })
+			})
+		}
+	})
+
+	const chestClosed = add([
+		sprite("chest-closed"),
+		pos(5, 116),
+		area({ shape: new Rect(vec2(100, 200), 300, 400) })
+	])
+
+	const incision = []
+	onDraw(() => {
+		incision.forEach((pts) => {
+			drawLines({
+				width: 8,
+				color: rgb(255, 0, 0),
+				pts: pts,
+			})
+		})
+	})
+
+	const cut = play("cut", {
+		loop: true,
+		paused: true
+	})
+	chestClosed.onUpdate(() => {
+		if (scalpel.active) {
+			if (isMousePressed()) {
+				incision.push([])
+				cut.paused = false
+			}
+			if (isMouseDown() && isMouseMoved() && incision.length > 0) {
+				incision[incision.length - 1].push(mousePos())
+			}
+			if (isMouseReleased()) {
+				if (incision.flat().length >= 10) {
+					incision.length = 0
+					destroy(chestClosed)
+				}
+			}
+		}
+	})
+
+	add([
+		sprite("captcha"),
+		pos(0, 0),
+		z(1)
+	])
+
+	const ice = add([
+		sprite("ice"),
+		pos(50, height() / 2),
+		anchor("center"),
+		area()
+	])
+
+	const scalpel = add([
+		sprite("scalpel"),
+		pos(width(), 0),
+		anchor("botleft"),
+		z(2),
+		{ active: false }
+	])
+	const forceps = add([
+		sprite("forceps"),
+		pos(width(), 0),
+		anchor("botleft"),
+		z(2),
+		{ active: false }
+	])
+	const stapler = add([
+		sprite("stapler"),
+		pos(width(), 0),
+		anchor("botleft"),
+		z(2),
+		{ active: false }
+	])
+	scalpel.onUpdate(() => {
+		if (scalpel.active) {
+			scalpel.pos = mousePos()
+		}
+	})
+	forceps.onUpdate(() => {
+		if (forceps.active) {
+			forceps.pos = mousePos()
+		}
+	})
+	stapler.onUpdate(() => {
+		if (stapler.active) {
+			stapler.pos = mousePos()
+		}
+	})
+
+	const uiScalpel = add([
+		sprite("ui-scalpel"),
+		pos(width() - 184, 130),
+		area(),
+		z(1)
+	])
+	const uiForceps = add([
+		sprite("ui-forceps"),
+		pos(width() - 184, 300),
+		area(),
+		z(1)
+	])
+	const uiStapler = add([
+		sprite("ui-stapler"),
+		pos(width() - 184, 470),
+		area(),
+		z(1)
+	])
+	uiScalpel.onClick(() => {
+		scalpel.active = true
+		forceps.active = false
+		stapler.active = false
+		forceps.pos = [width(), 0]
+		stapler.pos = [width(), 0]
+		play("scalpel")
+	})
+	uiForceps.onClick(() => {
+		forceps.active = true
+		scalpel.active = false
+		stapler.active = false
+		scalpel.pos = [width(), 0]
+		stapler.pos = [width(), 0]
+		play("forceps")
+	})
+	uiStapler.onClick(() => {
+		stapler.active = true
+		scalpel.active = false
+		forceps.active = false
+		scalpel.pos = [width(), 0]
+		forceps.pos = [width(), 0]
+		play("stapler")
+	})
+
+	add([
+		pos(8, height() - 8),
+		text("Surgery-o-tron 3000®"),
+		anchor("botleft"),
+		color(26, 115, 232),
+		z(1)
+	])
+
+	const exit = add([
+		sprite("exit"),
+		pos(width() - 63, height() - 34),
+		anchor("center"),
+		area({ offset: vec2(-15, -15) }),
+		z(1)
+	])
+	exit.onHoverUpdate(() => {
+		exit.scale = vec2(1.2)
+		setCursor("pointer")
+	})
+	exit.onHoverEnd(() => {
+		exit.scale = vec2(1)
+	})
+	exit.onClick(() => {
+		go("shelter", { beds: beds, curBed: curBed })
+	})
 
 	let curDraggin = null
 	function drag() {
@@ -502,12 +806,15 @@ scene("surgery", ({ beds, curBed }) => {
 			id: "drag",
 			require: [ "pos", "area" ],
 			pick() {
-				curDraggin = this
-				mouseOffset = mousePos().sub(this.pos)
-				this.trigger("drag")
+				if (!chestClosed.exists() && forceps.active) {
+					curDraggin = this
+					mouseOffset = mousePos().sub(this.pos)
+					this.trigger("drag")
+					play("yoink-" + randi(3))
+				}
 			},
 			update() {
-				if (curDraggin === this) {
+				if (curDraggin === this && !chestClosed.exists() && forceps.active) {
 					this.pos = mousePos().sub(mouseOffset)
 					this.trigger("dragUpdate")
 				}
@@ -524,8 +831,6 @@ scene("surgery", ({ beds, curBed }) => {
 		}
 	}
 
-	onUpdate(() => setCursor("default"))
-
 	onMousePress(() => {
 		if (curDraggin) {
 			return
@@ -538,86 +843,17 @@ scene("surgery", ({ beds, curBed }) => {
 		}
 	})
 	onMouseRelease(() => {
+		cut.paused = true
 		if (curDraggin) {
+			if (curDraggin == liver && liver.isColliding(ice)) {
+				play("confirmation")
+			}
+
 			curDraggin.trigger("dragEnd")
 			curDraggin = null
+			play("drop")
 		}
 	})
-
-	add([
-		sprite("chest-back"),
-		pos(5, 116)
-	])
-	const liver = add([
-		sprite("liver"),
-		pos(randi(450, 850), randi(250, 650)),
-		area({ cursor: "pointer", shape: collisions["liver"], scale: 0.8 }),
-		anchor("center"),
-		drag(),
-		"organ"
-	])
-	for (let i = 0; i <= 10; i++) {
-		const o = randi(15)
-		add([
-			sprite("organ-" + o),
-			pos(randi(450, 850), randi(250, 650)),
-			area({ cursor: "pointer", shape: collisions["organ-" + o], scale: 0.8 }),
-			anchor("center"),
-			drag(),
-			"organ"
-		])
-	}
-	const ribcage = add([
-		sprite("ribcage"),
-		pos(622, 422),
-		area({ cursor: "pointer", shape: collisions["ribcage"], scale: 0.8 }),
-		anchor("center"),
-		drag(),
-		"organ",
-        { removed: false }
-	])
-	get("organ").forEach((child) => {
-		child.onDrag(() => {
-			readd(child)
-		})
-		child.onDragUpdate(() => {
-			setCursor("move")
-		})
-	})
-	add([
-		sprite("chest-open"),
-		pos(5, 116)
-	])
-	add([
-		sprite("captcha"),
-		pos(0, 0)
-	])
-
-	add([
-		pos(8, height() - 8),
-		text("Surgery-o-tron 3000®"),
-		anchor("botleft"),
-		color(26, 115, 232)
-	])
-
-	const exit = add([
-		sprite("exit"),
-		pos(width() - 63, height() - 34),
-		anchor("center"),
-		area({ offset: vec2(-15, -15) })
-	])
-	exit.onHoverUpdate(() => {
-		exit.scale = vec2(1.2)
-		setCursor("pointer")
-	})
-	exit.onHoverEnd(() => {
-		exit.scale = vec2(1)
-	})
-	exit.onClick(() => {
-		go("shelter", { beds: beds, curBed: curBed })
-	})
-
-	//debug.inspect = true
 })
 
 scene("hide", (beds, curBed) => {
@@ -630,13 +866,18 @@ function start() {
 	])
 	for (let i = 1; i <= 10; i++) {
 		const d = randi(3)
+		const v = randi(3)
 		beds.add([
-			sprite("bed" + d),
+			sprite("bed-" + d + "-" + v),
 			pos(400 + width() / 3 * i, height() / 4 * 3),
+			area(),
 			anchor("bot"),
+			"bed",
 			{
 				speed: 350,
 				difficulty: d,
+				variant: v,
+				grade: d == 0 ? 3 : d == 1 ? 4 : 5,
 				done: false
 			}
 		])

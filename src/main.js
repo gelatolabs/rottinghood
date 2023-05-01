@@ -35,6 +35,7 @@ loadSprite("follower", "sprites/follower.png", {
 		}
 	}
 })
+loadSprite("outside", "sprites/outside.png")
 loadSprite("background", "sprites/background.png")
 loadSprite("foreground", "sprites/foreground.png")
 loadSprite("bed-0-0", "sprites/bed-0-0.png")
@@ -57,7 +58,15 @@ loadSprite("stapler", "sprites/stapler.png")
 loadSprite("ice", "sprites/ice.png")
 loadSprite("captcha", "sprites/captcha.png")
 loadSprite("chest-back", "sprites/chest-back.png")
-loadSprite("chest-closed", "sprites/chest-closed.png")
+loadSprite("chest-closed-0-0", "sprites/chest-closed-0-0.png")
+loadSprite("chest-closed-0-1", "sprites/chest-closed-0-1.png")
+loadSprite("chest-closed-0-2", "sprites/chest-closed-0-2.png")
+loadSprite("chest-closed-1-0", "sprites/chest-closed-1-0.png")
+loadSprite("chest-closed-1-1", "sprites/chest-closed-1-1.png")
+loadSprite("chest-closed-1-2", "sprites/chest-closed-1-2.png")
+loadSprite("chest-closed-2-0", "sprites/chest-closed-2-0.png")
+loadSprite("chest-closed-2-1", "sprites/chest-closed-2-1.png")
+loadSprite("chest-closed-2-2", "sprites/chest-closed-2-2.png")
 loadSprite("chest-open-0-0", "sprites/chest-open-0-0.png")
 loadSprite("chest-open-0-1", "sprites/chest-open-0-1.png")
 loadSprite("chest-open-0-2", "sprites/chest-open-0-2.png")
@@ -67,6 +76,7 @@ loadSprite("chest-open-1-2", "sprites/chest-open-1-2.png")
 loadSprite("chest-open-2-0", "sprites/chest-open-2-0.png")
 loadSprite("chest-open-2-1", "sprites/chest-open-2-1.png")
 loadSprite("chest-open-2-2", "sprites/chest-open-2-2.png")
+loadSprite("staples", "sprites/staples.png")
 loadSprite("liver", "sprites/liver.png")
 loadSprite("organ-0", "sprites/organ-0.png")
 loadSprite("organ-1", "sprites/organ-1.png")
@@ -84,19 +94,25 @@ loadSprite("organ-12", "sprites/organ-12.png")
 loadSprite("organ-13", "sprites/organ-13.png")
 loadSprite("organ-14", "sprites/organ-14.png")
 loadSprite("ribcage", "sprites/ribcage.png")
-loadSprite("exit", "sprites/exit.png")
+loadSprite("hide", "sprites/hide.png")
+loadSprite("hide-alert", "sprites/hide-alert.png")
+loadSprite("guard", "sprites/guard.png")
+loadSprite("eyes", "sprites/eyes.png")
 
-loadSound("crt", "audio/crt.ogg")
-loadSound("scalpel", "audio/scalpel.ogg")
-loadSound("forceps", "audio/forceps.ogg")
-loadSound("stapler", "audio/stapler.ogg")
-loadSound("cut", "audio/cut.ogg")
-loadSound("yoink-0", "audio/yoink-0.ogg")
-loadSound("yoink-1", "audio/yoink-1.ogg")
-loadSound("yoink-2", "audio/yoink-2.ogg")
-loadSound("drop", "audio/drop.ogg")
-loadSound("confirmation", "audio/confirmation.ogg")
-loadSound("staple", "audio/staple.ogg")
+loadSound("music", "audio/music.mp3")
+loadSound("crt", "audio/crt.mp3")
+loadSound("scalpel", "audio/scalpel.mp3")
+loadSound("forceps", "audio/forceps.mp3")
+loadSound("stapler", "audio/stapler.mp3")
+loadSound("cut", "audio/cut.mp3")
+loadSound("yoink-0", "audio/yoink-0.mp3")
+loadSound("yoink-1", "audio/yoink-1.mp3")
+loadSound("yoink-2", "audio/yoink-2.mp3")
+loadSound("drop", "audio/drop.mp3")
+loadSound("confirmation", "audio/confirmation.mp3")
+loadSound("staple", "audio/staple.mp3")
+loadSound("footsteps", "audio/footsteps.mp3")
+loadSound("snore", "audio/snore.mp3")
 
 loadShaderURL("crt", null, "shaders/crt.frag")
 
@@ -403,7 +419,103 @@ const collisions = {
 	])
 }
 
-scene("shelter", ({ beds, curBed }) => {
+scene("menu", () => {
+	add([
+		rect(width(), height()),
+		pos(0, 0),
+		color(BLACK)
+	])
+
+	add([
+		text("Rotting Hood's De-liver-y", { size: 64 }),
+		pos(width() / 2, 200),
+		anchor("center"),
+		area()
+	])
+	const gelato = add([
+		text("a [g]Gelato Labs[/g] production for LD53", {
+			size: 32,
+			styles: { "g": { color: GREEN } }
+		}),
+		pos(width() / 2, 270),
+		anchor("center"),
+		area()
+	])
+	gelato.onClick(() => {
+		window.open("https://gelatolabs.xyz", "_blank")
+	})
+
+	const btnPlay = add([
+		text("Play", { size: 72 }),
+		pos(width() / 2, 500),
+		anchor("center"),
+		area()
+	])
+	btnPlay.onHover(() => {
+		btnPlay.color = GREEN
+	})
+	btnPlay.onHoverEnd(() => {
+		btnPlay.color = WHITE
+	})
+	btnPlay.onClick(() => {
+		let level = 1
+
+		const music = play("music", {
+			loop: true
+		})
+
+		go("start", { level: level })
+	})
+})
+
+scene("start", ({ level }) => {
+	const beds = add([
+		fixed()
+	])
+	for (let i = 1; i <= 10; i++) {
+		const d = randi(3)
+		const v = randi(3)
+		beds.add([
+			sprite("bed-" + d + "-" + v),
+			pos(400 + width() / 3 * i, height() / 4 * 3),
+			area(),
+			anchor("bot"),
+			"bed",
+			{
+				speed: 350,
+				difficulty: d,
+				variant: v,
+				weight: d == 0 ? randi(500, 1000) : d == 1 ? randi(1200, 1700) : randi(1900, 2400),
+				time: 0,
+				score: 0,
+				done: false
+			}
+		])
+	}
+
+	const levelTimer = add([
+		text(60),
+		pos(8, height() - 4),
+		anchor("botleft"),
+		z(3),
+		stay(["shelter", "surgery", "surgeryScore", "hide"]),
+		{
+			startTime: time(),
+			time: 60
+		}
+	])
+	levelTimer.onUpdate(() => {
+		levelTimer.time = 60 - (time() - levelTimer.startTime)
+		levelTimer.text = Math.ceil(levelTimer.time)
+		if (levelTimer.time <= 0) {
+			go("levelEnd", { beds: beds, level: level })
+		}
+	})
+
+	go("shelter", { beds: beds, curBed: null, level: level })
+})
+
+scene("shelter", ({ beds, curBed, level }) => {
 	usePostEffect()
 
 	onUpdate(() => setCursor("default"))
@@ -467,7 +579,7 @@ scene("shelter", ({ beds, curBed }) => {
 			uiOperate.bed = bedIdx
 
 			if (isKeyDown("space")) {
-				go("surgery", { beds: beds, curBed: bedIdx })
+				go("surgery", { beds: beds, curBed: bedIdx, level: level })
 			}
 		}
 	})
@@ -508,46 +620,54 @@ scene("shelter", ({ beds, curBed }) => {
 		}
 	}
 
-	;["left", "right"].forEach((key) => {
-		onKeyDown("left", () => {
-			player.flipX = true
-			if (player.pos.x > width() / 4) {
-				player.move(-player.speed, 0)
-			} else {
-				get("parallax").forEach((child) => {
-					child.move(child.speed, 0)
-					if (child.pos.x >= width()) {
-						child.pos.x -= width() * 2
-					}
-				})
-				beds.children.forEach((child) => {
-					child.move(child.speed, 0)
-				})
+	;["left", "a"].forEach((key) => {
+		onUpdate(() => {
+			if (isKeyDown(key)) {
+				player.flipX = true
+				if (player.pos.x > width() / 4) {
+					player.move(-player.speed, 0)
+				} else {
+					get("parallax").forEach((child) => {
+						child.move(child.speed, 0)
+						if (child.pos.x >= width()) {
+							child.pos.x -= width() * 2
+						}
+					})
+					beds.children.forEach((child) => {
+						child.move(child.speed, 0)
+					})
+				}
+				if (follower.pos.x < width() / 4) {
+					follower.pos.x = width() / 4 + 230
+				}
+				animWalk()
 			}
-			if (follower.pos.x < width() / 4) {
-				follower.pos.x = width() / 4 + 230
-			}
-			animWalk()
 		})
+	});
 
-		onKeyDown("right", () => {
-			player.flipX = false
-			if (player.pos.x < width() / 4 * 3) {
-				player.move(player.speed, 0)
-			} else {
-				get("parallax").forEach((child) => {
-					child.move(-child.speed, 0)
-					if (child.pos.x <= -width()) {
-						child.pos.x += width() * 2
-					}
-				})
-				beds.children.forEach((child) => {
-					child.move(-child.speed, 0)
-				})
+	;["right", "d"].forEach((key) => {
+		onUpdate(() => {
+			if (isKeyDown(key)) {
+				player.flipX = false
+				if (player.pos.x < width() / 4 * 3) {
+					player.move(player.speed, 0)
+				} else {
+					get("parallax").forEach((child) => {
+						child.move(-child.speed, 0)
+						if (child.pos.x <= -width()) {
+							child.pos.x += width() * 2
+						}
+					})
+					beds.children.forEach((child) => {
+						child.move(-child.speed, 0)
+					})
+				}
+				animWalk()
 			}
-			animWalk()
 		})
+	});
 
+	;["left", "right", "a", "d"].forEach((key) => {
 		onKeyRelease(key, () => {
 			if (!isKeyDown("left") && !isKeyDown("right")) {
 				player.play("idle")
@@ -561,12 +681,17 @@ scene("shelter", ({ beds, curBed }) => {
 	})
 })
 
-scene("surgery", ({ beds, curBed }) => {
+scene("surgery", ({ beds, curBed, level }) => {
 	usePostEffect("crt", { "u_flatness": 4 })
 	play("crt")
 
 	const difficulty = beds.children[curBed].difficulty
 	const variant = beds.children[curBed].variant
+	let startTime = 0
+	let surgeryTime = 0
+	let delivered = false
+	let guardComing = false
+	let hiding = false
 
 	onUpdate(() => setCursor("default"))
 
@@ -603,7 +728,7 @@ scene("surgery", ({ beds, curBed }) => {
 		anchor("center"),
 		drag(),
 		"organ",
-        { removed: false }
+		{ removed: false }
 	])
 
 	get("organ").forEach((child) => {
@@ -622,27 +747,35 @@ scene("surgery", ({ beds, curBed }) => {
 	])
 
 	chestOpen.onClick(() => {
-		if (stapler.active && liver.isColliding(ice)) {
+		if (stapler.active && delivered) {
 			add([
-				sprite("chest-closed"),
+				sprite("chest-closed-" + difficulty + "-" + variant),
 				pos(5, 116)
+			])
+			add([
+				sprite("staples"),
+				pos(width() / 2 - 19, height() / 2 + 54),
+				anchor("center")
 			])
 			play("staple")
 			wait(1, () => {
 				const doneBed = beds.children[curBed]
 				doneBed.done = true
+				doneBed.time = surgeryTime
+				doneBed.score = Math.max(doneBed.weight - surgeryTime * 100, 0)
 				doneBed.add([
 					sprite("checkmark"),
 					pos(0, -490),
 					anchor("center")
 				])
-				go("shelter", { beds: beds, curBed: curBed })
+				if (typeof footsteps !== 'undefined') footsteps.paused = true
+				go("surgeryScore", { beds: beds, curBed: curBed, level: level })
 			})
 		}
 	})
 
 	const chestClosed = add([
-		sprite("chest-closed"),
+		sprite("chest-closed-" + difficulty + "-" + variant),
 		pos(5, 116),
 		area({ shape: new Rect(vec2(100, 200), 300, 400) })
 	])
@@ -675,6 +808,20 @@ scene("surgery", ({ beds, curBed }) => {
 				if (incision.flat().length >= 10) {
 					incision.length = 0
 					destroy(chestClosed)
+
+					startTime = time()
+					const timer = add([
+						text(surgeryTime),
+						pos(840, 42),
+						anchor("topright"),
+						z(1)
+					])
+					timer.onUpdate(() => {
+						if (!delivered) {
+							surgeryTime = Math.floor((time() - startTime) * 10) / 10
+							timer.text = surgeryTime.toFixed(1)
+						}
+					})
 				}
 			}
 		}
@@ -688,8 +835,8 @@ scene("surgery", ({ beds, curBed }) => {
 
 	const ice = add([
 		sprite("ice"),
-		pos(50, height() / 2),
-		anchor("center"),
+		pos(0, 85),
+		anchor("topleft"),
 		area()
 	])
 
@@ -774,29 +921,108 @@ scene("surgery", ({ beds, curBed }) => {
 	})
 
 	add([
-		pos(8, height() - 8),
+		pos(width() / 2, height() - 8),
 		text("Surgery-o-tron 3000®"),
-		anchor("botleft"),
+		anchor("bot"),
 		color(26, 115, 232),
 		z(1)
 	])
 
-	const exit = add([
-		sprite("exit"),
-		pos(width() - 63, height() - 34),
-		anchor("center"),
-		area({ offset: vec2(-15, -15) }),
-		z(1)
-	])
-	exit.onHoverUpdate(() => {
-		exit.scale = vec2(1.2)
-		setCursor("pointer")
-	})
-	exit.onHoverEnd(() => {
-		exit.scale = vec2(1)
-	})
-	exit.onClick(() => {
-		go("shelter", { beds: beds, curBed: curBed })
+	wait(randi(1, 20), () => {
+		const footsteps = play("footsteps", { volume: 4 })
+
+		const btnHide = add([
+			sprite("hide"),
+			pos(width() - 63, height() - 34),
+			anchor("center"),
+			area({ offset: vec2(-15, -15) }),
+			z(1)
+		])
+		btnHide.onHoverUpdate(() => {
+			btnHide.scale = vec2(1.2)
+			setCursor("pointer")
+		})
+		btnHide.onHoverEnd(() => {
+			btnHide.scale = vec2(1)
+		})
+		btnHide.onClick(() => {
+			hiding = true
+			let sus = 25
+			const hideout = add([
+				sprite("background"),
+				pos(0, 0),
+				z(2)
+			])
+			hideout.add([
+				sprite("bed-" + difficulty + "-" + variant),
+				pos(width() / 2, height() / 4 * 3),
+				anchor("bot")
+			])
+			hideout.add([
+				sprite("eyes"),
+				pos(width() / 2, height() / 4 * 3 - 30),
+				anchor("bot")
+			])
+			hideout.add([
+				sprite("guard"),
+				pos(width(), height()),
+				anchor("botleft"),
+				move(180, 300)
+			])
+			hideout.add([
+				text("Press Z to snore"),
+				pos(width() / 2, 35),
+				anchor("top")
+			])
+			hideout.add([
+				text("Sus:"),
+				pos(width() / 2 - 94, height() - 78),
+				anchor("botright")
+			])
+			hideout.add([
+				rect(258, 38),
+				pos(width() / 2 - 74, height() - 76),
+				color(0, 0, 0),
+				anchor("botleft")
+			])
+			susMeter = hideout.add([
+				rect(250, 30),
+				pos(width() / 2 - 70, height() - 80),
+				color(255, 0, 0),
+				anchor("botleft")
+			])
+
+			hideout.onUpdate(() => {
+				if (isKeyPressed("z")) {
+					console.log("z")
+					play("snore")
+					sus -= 1
+					console.log(sus)
+					susMeter.width -= 10
+				}
+			})
+
+			wait(5, () => {
+				if (typeof footsteps !== 'undefined') footsteps.paused = true
+				if (sus > 0) {
+					go("caught", { level: level })
+				} {
+					guardComing = false
+					hiding = false
+					destroy(hideout)
+					destroy(btnHide)
+				}
+			})
+		})
+
+		guardComing = true
+		hiding = false
+		wait(3, () => {
+			if (guardComing && !hiding) {
+				if (typeof footsteps !== 'undefined') footsteps.paused = true
+				go("caught", { level: level })
+			}
+		})
 	})
 
 	let curDraggin = null
@@ -804,9 +1030,9 @@ scene("surgery", ({ beds, curBed }) => {
 		let mouseOffset = vec2(0)
 		return {
 			id: "drag",
-			require: [ "pos", "area" ],
+			require: ["pos", "area"],
 			pick() {
-				if (!chestClosed.exists() && forceps.active) {
+				if (!chestClosed.exists() && !delivered && forceps.active) {
 					curDraggin = this
 					mouseOffset = mousePos().sub(this.pos)
 					this.trigger("drag")
@@ -814,7 +1040,7 @@ scene("surgery", ({ beds, curBed }) => {
 				}
 			},
 			update() {
-				if (curDraggin === this && !chestClosed.exists() && forceps.active) {
+				if (curDraggin === this && !chestClosed.exists() && !delivered && forceps.active) {
 					this.pos = mousePos().sub(mouseOffset)
 					this.trigger("dragUpdate")
 				}
@@ -846,6 +1072,7 @@ scene("surgery", ({ beds, curBed }) => {
 		cut.paused = true
 		if (curDraggin) {
 			if (curDraggin == liver && liver.isColliding(ice)) {
+				delivered = true
 				play("confirmation")
 			}
 
@@ -856,34 +1083,157 @@ scene("surgery", ({ beds, curBed }) => {
 	})
 })
 
-scene("hide", (beds, curBed) => {
-	
+scene("surgeryScore", ({ beds, curBed, level }) => {
+	add([
+		rect(width(), height()),
+		pos(0, 0),
+		color(BLACK)
+	])
+
+	const bed = beds.children[curBed]
+	add([
+		text("Liver weight:"),
+		pos(400, 200),
+		anchor("topleft")
+	])
+	add([
+		text("Air exposure:"),
+		pos(400, 260),
+		anchor("topleft")
+	])
+	add([
+		text("Score:"),
+		pos(400, 320),
+		anchor("topleft")
+	])
+	add([
+		text(bed.weight + "g"),
+		pos(880, 200),
+		anchor("topright")
+	])
+	add([
+		text(bed.time.toFixed(1) + "s"),
+		pos(880, 260),
+		anchor("topright")
+	])
+	add([
+		text(bed.score),
+		pos(880, 320),
+		anchor("topright")
+	])
+
+	const btnContinue = add([
+		text("Continue", { size: 72 }),
+		pos(width() / 2, 520),
+		anchor("bot"),
+		area()
+	])
+	btnContinue.onHover(() => {
+		btnContinue.color = GREEN
+	})
+	btnContinue.onHoverEnd(() => {
+		btnContinue.color = WHITE
+	})
+	btnContinue.onClick(() => {
+		go("shelter", { beds: beds, curBed: curBed, level: level })
+	})
 })
 
-function start() {
-	const beds = add([
-		fixed()
+scene("caught", ({ level }) => {
+	add([
+		rect(width(), height()),
+		pos(0, 0),
+		color(BLACK)
 	])
-	for (let i = 1; i <= 10; i++) {
-		const d = randi(3)
-		const v = randi(3)
-		beds.add([
-			sprite("bed-" + d + "-" + v),
-			pos(400 + width() / 3 * i, height() / 4 * 3),
-			area(),
-			anchor("bot"),
-			"bed",
-			{
-				speed: 350,
-				difficulty: d,
-				variant: v,
-				grade: d == 0 ? 3 : d == 1 ? 4 : 5,
-				done: false
-			}
-		])
+
+	add([
+		text("You were caught!"),
+		pos(width() / 2, 200),
+		anchor("top")
+	])
+
+	const btnContinue = add([
+		text("Continue", { size: 72 }),
+		pos(width() / 2, 520),
+		anchor("bot"),
+		area()
+	])
+	btnContinue.onHover(() => {
+		btnContinue.color = GREEN
+	})
+	btnContinue.onHoverEnd(() => {
+		btnContinue.color = WHITE
+	})
+	btnContinue.onClick(() => {
+		go("levelEnd", { beds: null, level: level })
+	})
+})
+
+scene("levelEnd", ({ beds, level }) => {
+	let score = 0
+	if (beds) {
+		beds.children.forEach((child) => {
+			score += child.score
+		})
 	}
 
-	go("shelter", { beds: beds, curBed: null })
-}
+	add([
+		rect(width(), height()),
+		pos(0, 0),
+		color(BLACK)
+	])
 
-start()
+	add([
+		text("End of night " + level),
+		pos(width() / 2, 200),
+		anchor("top")
+	])
+	add([
+		text("Score: " + score),
+		pos(width() / 2, height() / 2 - 20),
+		anchor("center")
+	])
+
+	const btnContinue = add([
+		text("Continue", { size: 72 }),
+		pos(width() / 2, 520),
+		anchor("bot"),
+		area()
+	])
+	btnContinue.onHover(() => {
+		btnContinue.color = GREEN
+	})
+	btnContinue.onHoverEnd(() => {
+		btnContinue.color = WHITE
+	})
+	btnContinue.onClick(() => {
+		go("story", { level: ++level })
+	})
+})
+
+scene("story", ({ level }) => {
+	add([
+		sprite("outside"),
+		pos(0, 0)
+	])
+
+	add([
+		sprite("player"),
+		pos(200, height()),
+		anchor("botleft"),
+		scale(2)
+	])
+
+	add([
+		sprite("follower"),
+		pos(width() - 200, height()),
+		anchor("botright"),
+		scale(2)
+	])
+
+	onMousePress(() => {
+		go("start", { level: level })
+	})
+})
+
+go("menu")

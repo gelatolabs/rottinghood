@@ -459,16 +459,18 @@ scene("menu", () => {
 	})
 	btnPlay.onClick(() => {
 		let level = 1
+		let totalScore = 0
 
 		const music = play("music", {
 			loop: true
 		})
 
-		go("start", { level: level })
+		go("story", { level: level, totalScore: totalScore })
 	})
 })
 
-scene("start", ({ level }) => {
+scene("start", ({ level, totalScore }) => {
+	usePostEffect()
 	const beds = add([
 		fixed()
 	])
@@ -508,14 +510,14 @@ scene("start", ({ level }) => {
 		levelTimer.time = 60 - (time() - levelTimer.startTime)
 		levelTimer.text = Math.ceil(levelTimer.time)
 		if (levelTimer.time <= 0) {
-			go("levelEnd", { beds: beds, level: level })
+			go("levelEnd", { beds: beds, level: level, totalScore: totalScore })
 		}
 	})
 
-	go("shelter", { beds: beds, curBed: null, level: level })
+	go("shelter", { beds: beds, curBed: null, level: level, totalScore: totalScore })
 })
 
-scene("shelter", ({ beds, curBed, level }) => {
+scene("shelter", ({ beds, curBed, level, totalScore }) => {
 	usePostEffect()
 
 	onUpdate(() => setCursor("default"))
@@ -579,7 +581,7 @@ scene("shelter", ({ beds, curBed, level }) => {
 			uiOperate.bed = bedIdx
 
 			if (isKeyDown("space")) {
-				go("surgery", { beds: beds, curBed: bedIdx, level: level })
+				go("surgery", { beds: beds, curBed: bedIdx, level: level, totalScore: totalScore })
 			}
 		}
 	})
@@ -681,7 +683,7 @@ scene("shelter", ({ beds, curBed, level }) => {
 	})
 })
 
-scene("surgery", ({ beds, curBed, level }) => {
+scene("surgery", ({ beds, curBed, level, totalScore }) => {
 	usePostEffect("crt", { "u_flatness": 4 })
 	play("crt")
 
@@ -769,7 +771,7 @@ scene("surgery", ({ beds, curBed, level }) => {
 					anchor("center")
 				])
 				if (typeof footsteps !== 'undefined') footsteps.paused = true
-				go("surgeryScore", { beds: beds, curBed: curBed, level: level })
+				go("surgeryScore", { beds: beds, curBed: curBed, level: level, totalScore: totalScore })
 			})
 		}
 	})
@@ -946,6 +948,7 @@ scene("surgery", ({ beds, curBed, level }) => {
 			btnHide.scale = vec2(1)
 		})
 		btnHide.onClick(() => {
+			usePostEffect()
 			hiding = true
 			let sus = 25
 			const hideout = add([
@@ -994,10 +997,8 @@ scene("surgery", ({ beds, curBed, level }) => {
 
 			hideout.onUpdate(() => {
 				if (isKeyPressed("z")) {
-					console.log("z")
 					play("snore")
 					sus -= 1
-					console.log(sus)
 					susMeter.width -= 10
 				}
 			})
@@ -1005,8 +1006,9 @@ scene("surgery", ({ beds, curBed, level }) => {
 			wait(5, () => {
 				if (typeof footsteps !== 'undefined') footsteps.paused = true
 				if (sus > 0) {
-					go("caught", { level: level })
+					go("caught", { level: level, totalScore: totalScore })
 				} {
+					usePostEffect("crt", { "u_flatness": 4 })
 					guardComing = false
 					hiding = false
 					destroy(hideout)
@@ -1020,7 +1022,7 @@ scene("surgery", ({ beds, curBed, level }) => {
 		wait(3, () => {
 			if (guardComing && !hiding) {
 				if (typeof footsteps !== 'undefined') footsteps.paused = true
-				go("caught", { level: level })
+				go("caught", { level: level, totalScore: totalScore })
 			}
 		})
 	})
@@ -1083,7 +1085,8 @@ scene("surgery", ({ beds, curBed, level }) => {
 	})
 })
 
-scene("surgeryScore", ({ beds, curBed, level }) => {
+scene("surgeryScore", ({ beds, curBed, level, totalScore }) => {
+	usePostEffect()
 	add([
 		rect(width(), height()),
 		pos(0, 0),
@@ -1135,11 +1138,12 @@ scene("surgeryScore", ({ beds, curBed, level }) => {
 		btnContinue.color = WHITE
 	})
 	btnContinue.onClick(() => {
-		go("shelter", { beds: beds, curBed: curBed, level: level })
+		go("shelter", { beds: beds, curBed: curBed, level: level, totalScore: totalScore })
 	})
 })
 
-scene("caught", ({ level }) => {
+scene("caught", ({ level, totalScore }) => {
+	usePostEffect()
 	add([
 		rect(width(), height()),
 		pos(0, 0),
@@ -1147,8 +1151,27 @@ scene("caught", ({ level }) => {
 	])
 
 	add([
-		text("You were caught!"),
+		text("You were caught by a security guard!"),
 		pos(width() / 2, 200),
+		anchor("top")
+	])
+
+	const caughtTexts = [
+		"FREEZE forkface!!!!!",
+		"We have a 10-14Z in progress, send backup!",
+		"Two zombies spotted in the infirmary!",
+		"Reach for the skies you filthy zombies!"
+	]
+	add([
+		text("\"" + caughtTexts[randi(caughtTexts.length)] + "\"", { transform: { angle: 5 } }),
+		pos(width() / 2, 250),
+		anchor("top"),
+		color(0, 255, 0)
+	])
+
+	add([
+		text("Your livers were confiscated. Better luck tomorrow night!"),
+		pos(width() / 2, 300),
 		anchor("top")
 	])
 
@@ -1165,17 +1188,19 @@ scene("caught", ({ level }) => {
 		btnContinue.color = WHITE
 	})
 	btnContinue.onClick(() => {
-		go("levelEnd", { beds: null, level: level })
+		go("levelEnd", { beds: null, level: level, totalScore: totalScore })
 	})
 })
 
-scene("levelEnd", ({ beds, level }) => {
+scene("levelEnd", ({ beds, level, totalScore }) => {
+	usePostEffect()
 	let score = 0
 	if (beds) {
 		beds.children.forEach((child) => {
 			score += child.score
 		})
 	}
+	totalScore += score
 
 	add([
 		rect(width(), height()),
@@ -1188,11 +1213,50 @@ scene("levelEnd", ({ beds, level }) => {
 		pos(width() / 2, 200),
 		anchor("top")
 	])
+
 	add([
 		text("Score: " + score),
-		pos(width() / 2, height() / 2 - 20),
+		pos(width() / 2, 250),
 		anchor("center")
 	])
+
+	const goodTexts = [
+		"Excellent job!  Put that one up on the fridge!",
+		"Zombiriffic!  Triple-decker sandwiches for all!",
+		"Super work!  You get a scratch and sniff liver & onions sticker!"
+	]
+	const okTexts = [
+		"Not bad, but we know you can improve!",
+		"Mediocre effort, don't give up now!",
+		"Just ok, take a bio break and give it another shot!"
+	]
+	const badTexts = [
+		"YOU FAILED!  The zombie special will be onions with no liver tonight!",
+		"Come on, you know you can do better - go watch a zombie movie and then try again!",
+		"Imitation liver for you!  Brush up on your skills and come back when you are ready!"
+	]
+	if (score > 3000) {
+		add([
+			text("\"" + goodTexts[randi(goodTexts.length)] + "\"", { align: "center", width: width() - 230, transform: { angle: 5 } }),
+			pos(width() / 2, 300),
+			anchor("top"),
+			color(0, 255, 0)
+		])
+	} else if (score > 1000) {
+		add([
+			text("\"" + okTexts[randi(okTexts.length)] + "\"", { align: "center", width: width() - 230, transform: { angle: 5 } }),
+			pos(width() / 2, 300),
+			anchor("top"),
+			color(0, 255, 0)
+		])
+	} else {
+		add([
+			text("\"" + badTexts[randi(badTexts.length)] + "\"", { align: "center", width: width() - 230, transform: { angle: 5 } }),
+			pos(width() / 2, 300),
+			anchor("top"),
+			color(0, 255, 0)
+		])
+	}
 
 	const btnContinue = add([
 		text("Continue", { size: 72 }),
@@ -1207,32 +1271,142 @@ scene("levelEnd", ({ beds, level }) => {
 		btnContinue.color = WHITE
 	})
 	btnContinue.onClick(() => {
-		go("story", { level: ++level })
+		go("story", { level: ++level, totalScore: totalScore })
 	})
 })
 
-scene("story", ({ level }) => {
-	add([
+scene("story", ({ level, totalScore }) => {
+	usePostEffect()
+	const outside = add([
 		sprite("outside"),
 		pos(0, 0)
 	])
 
-	add([
-		sprite("player"),
-		pos(200, height()),
+	const z1 = add([
+		sprite("player", { anim: "idle" }),
+		pos(200, height() + 70),
 		anchor("botleft"),
-		scale(2)
+		scale(2),
+		"Rotting Hood"
 	])
 
-	add([
-		sprite("follower"),
-		pos(width() - 200, height()),
+	const z2 = add([
+		sprite("follower", { anim: "idle", flipX: -1 }),
+		pos(width() - 100, height() + 70),
 		anchor("botright"),
-		scale(2)
+		scale(2),
+		"Patient Zero"
 	])
 
-	onMousePress(() => {
-		go("start", { level: level })
+	const n = add([
+		"Narrator"
+	])
+
+	const dialogs = [
+		[
+			["Narrator", "Due to advanced research spurred by the recent global pandemic, an attempt to create a super vaccine goes horribly wrong and sparks a zombie outbreak."],
+			["Narrator", "Too soon?"],
+			["Narrator", "Unlike typical zombies, these are of a peculiar nature and retain a high level of cognitive ability."],
+			["Narrator", "Through desperation for survival, humans decide to abandon their conscience and evolve into bloodthirsty savages."],
+			["Narrator", "Ironically, the zombies uphold their values and become the only force for good left on earth."],
+			["Narrator", "Their only weakness is their well-refined palate that demands liver sandwiches."],
+			["Narrator", "As the animal population has been dwindling causing a shortage in supply, they prepare to strike back at the evil humans who have attempted to eradicate them."],
+			["Rotting Hood", "You are Rotting Hood, one of the earliest victims of the first wave, and have witnessed first-hand the evil in which humanity is capable of."],
+			["Rotting Hood", "After losing your family to relentless airstrikes, you pledge revenge against all humans and have developed a fierce appetite for liver & onion sandwiches."],
+			["Patient Zero", "You have befriended a fellow zombie by the name of Patient Zero. Not much is known about Zero, as he was discovered wandering the forest alone."],
+			["Patient Zero", "Possessing great strength, he is a zombie of a few words and prefers to react through actions rather than words."],
+			["Narrator", "You have heard rumors of a shelter loaded with humans and are plotting to slip into the facility undetected to satisfy your hunger."],
+			["Narrator", "After convincing Zero that this is a good idea, you decide to proceed under the cover of night."],
+			["Narrator", "Upon arriving you notice flashlights in the distance and manage to sneak in through a ventilation duct."],
+			["Narrator", "There is a long hallway filled with sleeping humans that seems to stretch out as far as the eye can see."]
+		],
+		[
+			["Rotting Hood", "Look at this chubby homosapien, yum yum yum!"],
+			["Patient Zero", "*Grunts in approval*"]
+		],
+		[
+			["Rotting Hood", "Mamma mia, thatsa gonna makea lovely liver pizza pie!"],
+			["Patient Zero", "Me like pizza!"]
+		],
+		[
+			["Rotting Hood", "We don't have much time - pass me the duct tape!"],
+			["Patient Zero", "*Peels off a fresh strip*"]
+		],
+		[
+			["Rotting Hood", "Are you thinking what I'm thinking?"],
+			["Patient Zero", "No"]
+		],
+		[
+			["Rotting Hood", "That's one small liver for zombies and one giant leap for my appetite!"],
+			["Patient Zero", "*Rolls eyes*"]
+		],
+		[
+			["Rotting Hood", "Why did the zombie cross the road?"],
+			["Patient Zero", "For sloppy seconds."]
+		],
+		[
+			["Rotting Hood", "Who's on first, what's on second and "],
+			["Patient Zero", "Time to end this joke."]
+		],
+		[
+			["Rotting Hood", "Who's the clown that wrote this script?"],
+			["Patient Zero", "Chat ZPT."]
+		],
+		[
+			["Rotting Hood", "Another successful deeeelivery! "],
+			["Patient Zero", "Deeeeliveriously delicious!"]
+		],
+		[
+			["Narrator", "You collect the mass of freshly harvested livers and deliver them to your local zubway location."],
+			["Narrator", "With the supply replenished, you feel satisfied in satisfying the appetite of your fellow zombies."],
+			["Narrator", "But one thing lingers in your mind, what if you could have gotten just one more?"],
+			["Narrator", "You decide to try your luck and plan another trip tomorrow night..."],
+			["Narrator", "THE END"],
+			["Narrator", "Final score: " + totalScore],
+			["Narrator", "Thanks for playing!"]
+		]
+	]
+	let curDialog = 0
+
+	const textbox = add([
+		rect(width() - 200, 120, { radius: 16 }),
+		anchor("center"),
+		pos(width() / 2, height() - 70),
+		outline(4)
+	])
+
+	const txt = add([
+		text(dialogs[level - 1][0][1], { size: 24, width: width() - 230, align: "center" }),
+		pos(textbox.pos),
+		anchor("center"),
+		color(0, 0, 0),
+		z(1)
+	])
+
+	let initialSpeaker = dialogs[level - 1][0][0]
+	if (initialSpeaker !== "Narrator") {
+		get(initialSpeaker)[0].pos.y = height() - 30
+	}
+
+	outside.onUpdate(() => {
+		if (isMousePressed()) {
+			curDialog++
+			if (curDialog > dialogs[level - 1].length - 1) {
+				if (level === 11) {
+					go("menu")
+				} else {
+					go("start", { level: level, totalScore: totalScore })
+				}
+			} else {
+				const [speaker, dialog] = dialogs[level - 1][curDialog]
+				z1.pos.y = height() + 70
+				z2.pos.y = height() + 70
+				if (speaker !== "Narrator") {
+					get(speaker)[0].pos.y = height() - 30
+				}
+				txt.text = dialog
+			}
+		}
 	})
 })
 
